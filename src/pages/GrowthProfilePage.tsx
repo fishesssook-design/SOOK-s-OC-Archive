@@ -1,9 +1,13 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
+import { CharacterHero } from '@/components/detail/CharacterHero';
+import { DetailHeader, DetailHeaderButton } from '@/components/detail/DetailHeader';
 import { DetailSection } from '@/components/detail/DetailSection';
-import { GrowthAgeButtons } from '@/components/common/GrowthAgeButtons';
+import { SILHOUETTE_SRC } from '@/components/common/CharacterImage';
 import { StatusMessage } from '@/components/common/StatusMessage';
+import { buildProfileRows } from '@/lib/characterProfile';
 import { navigate } from '@/lib/navigation';
 import { useCharacters } from '@/hooks/useCharacters';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useLocation } from '@/hooks/useLocation';
 
 interface Props {
@@ -13,6 +17,7 @@ interface Props {
 
 export function GrowthProfilePage({ id, age }: Props) {
   const { search } = useLocation();
+  const isAdmin = useIsAdmin();
   const { characters, error } = useCharacters();
   const goToList = () => navigate(`/${search}`);
   const goToDetail = () => navigate(`/character/${id}${search}`);
@@ -25,7 +30,7 @@ export function GrowthProfilePage({ id, age }: Props) {
   }
 
   const character = characters.find((item) => item.id === id);
-  if (!character || !character.is_public) {
+  if (!character || (!character.is_public && !isAdmin)) {
     return <StatusMessage message="해당 캐릭터를 찾을 수 없습니다." action={{ label: '목록으로', onClick: goToList }} />;
   }
 
@@ -34,35 +39,37 @@ export function GrowthProfilePage({ id, age }: Props) {
     return <StatusMessage message="해당 나이의 프로필을 찾을 수 없습니다." action={{ label: '캐릭터 상세로', onClick: goToDetail }} />;
   }
 
-  const ages = character.growth_profiles.map((item) => item.age);
+  const fullBodySrc = (profile.full_body_url ? character.image_srcs[profile.full_body_url] : undefined) ?? SILHOUETTE_SRC;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-6 sm:px-6">
-      <button
-        type="button"
-        onClick={goToDetail}
-        className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium transition hover:border-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        캐릭터 상세로
-      </button>
+    <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
+      <DetailHeader title="성장 프로필" dexNumber={character.dex_number}>
+        {isAdmin && (
+          <DetailHeaderButton onClick={() => navigate(`/admin/characters/${character.id}`)}>
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            수정
+          </DetailHeaderButton>
+        )}
+        <DetailHeaderButton onClick={goToDetail}>
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          캐릭터 상세로
+        </DetailHeaderButton>
+      </DetailHeader>
 
-      <article className="mt-4 space-y-8 rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8">
-        <header className="space-y-4">
-          <p className="text-sm font-semibold text-zinc-500">성장 프로필</p>
-          <h1 className="text-3xl font-bold leading-tight">{character.name}</h1>
-          <GrowthAgeButtons
-            ages={ages}
-            activeAge={age}
-            onSelect={(nextAge) => navigate(`/character/${id}/growth/${nextAge}${search}`)}
-          />
-        </header>
+      <div className="mt-[72px]">
+        <CharacterHero
+          character={character}
+          profileRows={buildProfileRows(character, `${age}세`)}
+          fullBodySrc={fullBodySrc}
+          activeAge={age}
+          onOpenGrowth={(nextAge) => navigate(`/character/${id}/growth/${nextAge}${search}`)}
+        />
+      </div>
 
-        <p className="text-2xl font-bold text-zinc-900">{age}세</p>
-
+      <div className="mt-[80px] space-y-8">
         <DetailSection title="프로필" blocks={profile.profile_blocks} imageSrcs={character.image_srcs} />
         <DetailSection title="설정" blocks={profile.settings_blocks} imageSrcs={character.image_srcs} />
-      </article>
+      </div>
     </main>
   );
 }

@@ -1,5 +1,6 @@
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { CharacterDetail } from '@/components/detail/CharacterDetail';
+import { DetailHeader, DetailHeaderButton } from '@/components/detail/DetailHeader';
 import { StatusMessage } from '@/components/common/StatusMessage';
 import { buildCatalogSearch, parseCatalogQuery } from '@/lib/catalogQuery';
 import { applyCatalogQuery, getNeighbors } from '@/lib/characterFilters';
@@ -39,36 +40,21 @@ export function CharacterPage({ id }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4 pt-2">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-zinc-400 sm:text-3xl">캐릭터 상세</h1>
-          <span className="text-xs font-semibold text-zinc-400">No. {String(character.dex_number).padStart(3, '0')}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => navigate(`/admin/characters/${character.id}`)}
-              className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-              수정
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={goToList}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            목록으로
-          </button>
-        </div>
-      </div>
+      <DetailHeader title="캐릭터 상세" dexNumber={character.dex_number}>
+        {isAdmin && (
+          <DetailHeaderButton onClick={() => navigate(`/admin/characters/${character.id}`)}>
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            수정
+          </DetailHeaderButton>
+        )}
+        <DetailHeaderButton onClick={goToList}>
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          목록으로
+        </DetailHeaderButton>
+      </DetailHeader>
 
       <div className="mt-[72px]">
         <CharacterDetail
-
           character={character}
           neighbors={neighbors}
           onSelect={openCharacter}
