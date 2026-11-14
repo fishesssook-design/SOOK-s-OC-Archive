@@ -26,14 +26,15 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
     <>
       <div className="relative flex w-full flex-col gap-10 md:flex-row md:gap-[44px]">
         <div className="absolute left-0 top-0 z-[5]">
-          <div className="flex min-h-[70px] w-max min-w-[530px] items-center justify-center rounded-full border border-zinc-200 bg-white px-6">
-            <p className="whitespace-nowrap text-lg font-bold text-zinc-800" style={{ fontFamily: '"Noto Serif KR", serif' }}>
-              “{catchphrase}”
-            </p>
+          <div className="min-h-[70px] w-max min-w-[530px] rounded-full bg-zinc-200 p-px">
+            <div className="flex min-h-[68px] items-center justify-center rounded-full bg-white px-6">
+              <p className="whitespace-nowrap text-lg font-bold text-zinc-800" style={{ fontFamily: '"Noto Serif KR", serif' }}>
+                “{catchphrase}”
+              </p>
+            </div>
           </div>
-          <svg aria-hidden="true" width="19" height="19" viewBox="0 0 19 19" className="absolute left-[345px] top-[69px] text-zinc-200">
-            <path d="M0.5 0.5 L18.5 18.5 L18.5 0.5 Z" fill="#ffffff" stroke="currentColor" strokeWidth="1" />
-          </svg>
+          <div aria-hidden="true" className="absolute left-[345px] top-[69px] h-[19px] w-[19px] bg-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 0)' }} />
+          <div aria-hidden="true" className="absolute left-[345px] top-[69px] h-[19px] w-[19px] bg-white" style={{ clipPath: 'polygon(1.41px 0, 18px 16.59px, 18px 0)' }} />
         </div>
 
         <aside className="relative z-[4] flex min-w-[320px] shrink-0 flex-col pt-[118px]">
