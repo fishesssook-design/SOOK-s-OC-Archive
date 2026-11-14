@@ -76,8 +76,8 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
                           key={profile.age}
                           onClick={() => onOpenGrowth(profile.age)}
                           aria-current={isActive ? 'page' : undefined}
-                          className={`min-w-[90px] shrink-0 overflow-hidden rounded-lg border bg-white text-left transition hover:-translate-y-0.5 hover:border-yellow-400 hover:shadow-sm ${
-                            isActive ? 'border-yellow-400 ring-2 ring-yellow-300/60' : 'border-zinc-200'
+                          className={`min-w-[90px] shrink-0 overflow-hidden rounded-lg border bg-white text-left transition hover:border-yellow-400 ${
+                            isActive ? 'border-yellow-400 ring-2 ring-inset ring-yellow-400' : 'border-zinc-200'
                           }`}
                         >
                           <CharacterImage src={thumbnailSrc} name={`${profile.age}세 성장 프로필`} className="min-h-[90px] min-w-[90px] shrink-0 object-cover" />

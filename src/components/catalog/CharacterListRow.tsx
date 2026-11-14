@@ -45,6 +45,7 @@ export function CharacterListRow({ character, onSelect, onOpenGrowth, onDelete }
       />
       <div className="pointer-events-none flex w-full items-center gap-4">
         <span className="flex w-20 shrink-0 items-center gap-1.5 truncate font-semibold sm:w-32">
+          <span className="shrink-0 text-xs text-zinc-400 sm:text-sm">{formatDexNumber(character.dex_number)}</span>
           <span className="truncate">{character.name}</span>
           {!character.is_public && <PrivateBadge />}
         </span>

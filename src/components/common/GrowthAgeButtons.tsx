@@ -1,11 +1,12 @@
 interface Props {
   ages: number[];
   onSelect: (age: number) => void;
+  onHoverChange?: (age: number | null) => void;
   activeAge?: number;
   className?: string;
 }
 
-export function GrowthAgeButtons({ ages, onSelect, activeAge, className = '' }: Props) {
+export function GrowthAgeButtons({ ages, onSelect, onHoverChange, activeAge, className = '' }: Props) {
   return (
     <ul className={`flex flex-wrap gap-1.5 ${className}`}>
       {ages.map((age) => {
@@ -15,6 +16,10 @@ export function GrowthAgeButtons({ ages, onSelect, activeAge, className = '' }: 
             <button
               type="button"
               onClick={() => onSelect(age)}
+              onMouseEnter={() => onHoverChange?.(age)}
+              onMouseLeave={() => onHoverChange?.(null)}
+              onFocus={() => onHoverChange?.(age)}
+              onBlur={() => onHoverChange?.(null)}
               aria-current={active ? 'page' : undefined}
               className={`rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm transition ${
                 active

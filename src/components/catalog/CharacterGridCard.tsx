@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PrivateBadge } from '@/components/common/PrivateBadge';
 import type { Character } from '@/lib/data';
 import { formatActivityPeriod, formatDexNumber } from '@/lib/format';
@@ -23,6 +24,7 @@ const STRETCHED_BUTTON_CLASS =
 
 export function CharacterGridCard({ character, onSelect, onOpenGrowth, onDelete }: Props) {
   const isAdmin = useIsAdmin();
+  const [hoveredAge, setHoveredAge] = useState<number | null>(null);
   const openLabel = `도감 No. ${formatDexNumber(character.dex_number)} 상세 보기`;
 
   if (!character.is_public && !isAdmin) {
@@ -35,6 +37,9 @@ export function CharacterGridCard({ character, onSelect, onOpenGrowth, onDelete 
   }
 
   const ages = character.growth_profiles.map((profile) => profile.age);
+  const hoveredThumbnailUrl = character.growth_profiles.find((profile) => profile.age === hoveredAge)?.thumbnail_url;
+  const hoveredThumbnailSrc = hoveredThumbnailUrl ? character.image_srcs[hoveredThumbnailUrl] : undefined;
+  const displayThumbnailSrc = hoveredThumbnailSrc ?? character.thumbnail_src;
 
   return (
     <div className={CARD_CLASS}>
@@ -46,12 +51,17 @@ export function CharacterGridCard({ character, onSelect, onOpenGrowth, onDelete 
       />
       <div className="pointer-events-none relative overflow-hidden">
         <CharacterImage
-          src={character.thumbnail_src}
+          src={displayThumbnailSrc}
           name={character.name}
           className="aspect-[3/4] w-full object-cover object-top transition duration-500 group-hover:scale-105"
         />
         {ages.length > 0 && (
-          <GrowthAgeButtons ages={ages} onSelect={onOpenGrowth} className="pointer-events-auto absolute left-2 right-2 top-2 z-10" />
+          <GrowthAgeButtons
+            ages={ages}
+            onSelect={onOpenGrowth}
+            onHoverChange={setHoveredAge}
+            className="pointer-events-auto absolute left-2 right-2 top-2 z-10"
+          />
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
