@@ -1,9 +1,10 @@
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { CharacterDetail } from '@/components/detail/CharacterDetail';
-import { DetailHeader, DetailHeaderButton } from '@/components/detail/DetailHeader';
+import { PageTitleBar, PageTitleButton, PAGE_CONTAINER_CLASS } from '@/components/layout/PageTitleBar';
 import { StatusMessage } from '@/components/common/StatusMessage';
 import { buildCatalogSearch, parseCatalogQuery } from '@/lib/catalogQuery';
 import { applyCatalogQuery, getNeighbors } from '@/lib/characterFilters';
+import { formatDexNumber } from '@/lib/format';
 import { navigate } from '@/lib/navigation';
 import { useCharacters } from '@/hooks/useCharacters';
 import { useLocation } from '@/hooks/useLocation';
@@ -39,19 +40,22 @@ export function CharacterPage({ id }: Props) {
   const openGrowth = (age: number) => navigate(`/character/${id}/growth/${age}${search}`);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
-      <DetailHeader title="캐릭터 상세" dexNumber={character.dex_number}>
+    <main className={PAGE_CONTAINER_CLASS}>
+      <PageTitleBar
+        title="캐릭터 상세"
+        meta={<span className="text-xs font-semibold text-zinc-400">No. {formatDexNumber(character.dex_number)}</span>}
+      >
         {isAdmin && (
-          <DetailHeaderButton onClick={() => navigate(`/admin/characters/${character.id}`)}>
+          <PageTitleButton onClick={() => navigate(`/admin/characters/${character.id}`)}>
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
             수정
-          </DetailHeaderButton>
+          </PageTitleButton>
         )}
-        <DetailHeaderButton onClick={goToList}>
+        <PageTitleButton onClick={goToList}>
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           목록으로
-        </DetailHeaderButton>
-      </DetailHeader>
+        </PageTitleButton>
+      </PageTitleBar>
 
       <div className="mt-[72px]">
         <CharacterDetail
