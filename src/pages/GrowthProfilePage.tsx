@@ -49,7 +49,7 @@ export function GrowthProfilePage({ id, age }: Props) {
         meta={<span className="text-xs font-semibold text-zinc-400">No. {formatDexNumber(character.dex_number)}</span>}
       >
         {isAdmin && (
-          <PageTitleButton onClick={() => navigate(`/admin/characters/${character.id}`)}>
+          <PageTitleButton onClick={() => navigate(`/admin/characters/${character.id}/growth/${age}`)}>
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
             수정
           </PageTitleButton>

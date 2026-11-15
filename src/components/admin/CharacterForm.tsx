@@ -2,10 +2,12 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CharacterImageField } from '@/components/admin/CharacterImageField';
 import { ContentBlocksField } from '@/components/admin/ContentBlocksField';
-import { GrowthProfilesField } from '@/components/admin/GrowthProfilesField';
+import { CharacterGrowthSection } from '@/components/admin/CharacterGrowthSection';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import type { Character } from '@/lib/data';
 import { validateCharacterForm, type CharacterFormValues } from '@/lib/characterForm';
 import { describeSaveError, saveCharacter } from '@/lib/characterWrite';
+import { navigate } from '@/lib/navigation';
 
 interface Props {
   initial: CharacterFormValues;
@@ -22,9 +24,17 @@ export function CharacterForm({ initial, existing, onSaved }: Props) {
   const [values, setValues] = useState<CharacterFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<Status>(null);
+  const [dirty, setDirty] = useState(false);
+  const [leaveTarget, setLeaveTarget] = useState<string | null>(null);
 
   const set = <K extends keyof CharacterFormValues>(key: K, value: CharacterFormValues[K]) => {
+    setDirty(true);
     setValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const openGrowthPage = (path: string) => {
+    if (dirty) setLeaveTarget(path);
+    else navigate(path);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -122,7 +132,7 @@ export function CharacterForm({ initial, existing, onSaved }: Props) {
       </FormSection>
 
       <FormSection title="성장">
-        <GrowthProfilesField rows={values.growthProfiles} onChange={(rows) => set('growthProfiles', rows)} />
+        <CharacterGrowthSection character={existing} onOpen={openGrowthPage} />
       </FormSection>
 
       {status && (
@@ -141,6 +151,17 @@ export function CharacterForm({ initial, existing, onSaved }: Props) {
           {saving ? '저장 중...' : '저장하기'}
         </button>
       </div>
+
+      {leaveTarget && (
+        <ConfirmDialog
+          title="저장하지 않은 변경 사항"
+          message="저장하지 않고 이동하면 지금 입력한 내용이 사라져요."
+          confirmLabel="이동하기"
+          busy={false}
+          onConfirm={() => navigate(leaveTarget)}
+          onCancel={() => setLeaveTarget(null)}
+        />
+      )}
     </form>
   );
 }

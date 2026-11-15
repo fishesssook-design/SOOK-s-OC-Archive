@@ -1,11 +1,13 @@
 import { supabase } from '@/lib/supabase';
-import { getCharacterImagePaths, type Character, type ContentBlock } from '@/lib/data';
+import { getCharacterImagePaths, type Character, type ContentBlock, type GrowthProfile } from '@/lib/data';
 import { removeCharacterImages, uploadCharacterImage } from '@/lib/characterImages';
 import {
   buildCharacterInput,
+  buildGrowthProfile,
   type BlockDraft,
   type CharacterFormValues,
   type CharacterInput,
+  type GrowthFormRow,
   type ImageSlot,
   type ResolvedGrowth,
   type ResolvedImages,
@@ -33,16 +35,12 @@ export async function saveCharacter(existing: Character | null, values: Characte
       features: await resolveBlocks(values.features, uploaded),
       details: await resolveBlocks(values.details, uploaded),
     };
-    const growth: ResolvedGrowth[] = [];
-    for (const row of values.growthProfiles) {
-      growth.push({
-        thumbnail_url: await resolveImage(row.thumbnail, uploaded),
-        full_body_url: await resolveImage(row.fullBody, uploaded),
-        profile_blocks: await resolveBlocks(row.profile, uploaded),
-        settings_blocks: await resolveBlocks(row.settings, uploaded),
-      });
-    }
-    const images: ResolvedImages = { thumbnail_url: thumbnailPath, full_body_url: fullBodyPath, background_url: backgroundPath, blocks, growth };
+    const images: ResolvedImages = {
+      thumbnail_url: thumbnailPath,
+      full_body_url: fullBodyPath,
+      background_url: backgroundPath,
+      blocks,
+    };
     const input = buildCharacterInput(values, images);
 
     if (existing) {
@@ -51,7 +49,7 @@ export async function saveCharacter(existing: Character | null, values: Characte
       await insertCharacterRow(input);
     }
 
-    const keptPaths = getCharacterImagePaths(input);
+    const keptPaths = getCharacterImagePaths({ ...input, growth_profiles: existing?.growth_profiles ?? [] });
     const replacedPaths = (existing ? getCharacterImagePaths(existing) : []).filter(
       (path) => !keptPaths.includes(path),
     );
@@ -60,6 +58,39 @@ export async function saveCharacter(existing: Character | null, values: Characte
     await cleanupImages(uploaded);
     throw err;
   }
+}
+
+export async function saveGrowthProfile(
+  character: Character,
+  originalAge: number | null,
+  row: GrowthFormRow,
+): Promise<void> {
+  const uploaded: string[] = [];
+
+  try {
+    const resolved: ResolvedGrowth = {
+      thumbnail_url: await resolveImage(row.thumbnail, uploaded),
+      full_body_url: await resolveImage(row.fullBody, uploaded),
+      profile_blocks: await resolveBlocks(row.profile, uploaded),
+      settings_blocks: await resolveBlocks(row.settings, uploaded),
+    };
+    const profile = buildGrowthProfile(row, resolved);
+
+    const current = await fetchGrowthProfiles(character.id);
+    const next = [...current.filter((item) => item.age !== originalAge), profile].sort((a, b) => a.age - b.age);
+    await updateGrowthProfiles(character.id, next);
+    await cleanupImages(replacedImagePaths(character, current, next));
+  } catch (err) {
+    await cleanupImages(uploaded);
+    throw err;
+  }
+}
+
+export async function deleteGrowthProfile(character: Character, age: number): Promise<void> {
+  const current = await fetchGrowthProfiles(character.id);
+  const next = current.filter((item) => item.age !== age);
+  await updateGrowthProfiles(character.id, next);
+  await cleanupImages(replacedImagePaths(character, current, next));
 }
 
 export async function deleteCharacter(character: Character): Promise<void> {
@@ -74,6 +105,11 @@ export async function deleteCharacter(character: Character): Promise<void> {
   if (!data) throw new Error('Character delete affected no rows');
 
   await cleanupImages(getCharacterImagePaths(character));
+}
+
+function replacedImagePaths(character: Character, before: GrowthProfile[], after: GrowthProfile[]): string[] {
+  const keptPaths = getCharacterImagePaths({ ...character, growth_profiles: after });
+  return getCharacterImagePaths({ ...character, growth_profiles: before }).filter((path) => !keptPaths.includes(path));
 }
 
 async function resolveImage(slot: ImageSlot, uploaded: string[]): Promise<string | null> {
@@ -109,6 +145,26 @@ async function updateCharacterRow(id: number, input: CharacterInput): Promise<vo
   const { data, error } = await supabase
     .from('characters')
     .update(input)
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Character update affected no rows');
+}
+
+async function fetchGrowthProfiles(id: number): Promise<GrowthProfile[]> {
+  const { data, error } = await supabase.from('characters').select('growth_profiles').eq('id', id).maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Character not found');
+  return data.growth_profiles as GrowthProfile[];
+}
+
+async function updateGrowthProfiles(id: number, profiles: GrowthProfile[]): Promise<void> {
+  const { data, error } = await supabase
+    .from('characters')
+    .update({ growth_profiles: profiles })
     .eq('id', id)
     .select('id')
     .maybeSingle();

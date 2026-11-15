@@ -40,7 +40,6 @@ export interface CharacterFormValues {
   thumbnail: ImageSlot;
   fullBody: ImageSlot;
   background: ImageSlot;
-  growthProfiles: GrowthFormRow[];
 }
 
 export type DescriptionSection = 'personality' | 'features' | 'details';
@@ -57,6 +56,17 @@ export function createEmptyGrowthRow(): GrowthFormRow {
     fullBody: EMPTY_IMAGE,
     profile: [createBlockDraft('text')],
     settings: [createBlockDraft('text')],
+  };
+}
+
+export function growthRowFromProfile(profile: GrowthProfile, imageSrcs: Record<string, string>): GrowthFormRow {
+  return {
+    key: crypto.randomUUID(),
+    age: String(profile.age),
+    thumbnail: slotFromPath(profile.thumbnail_url, imageSrcs),
+    fullBody: slotFromPath(profile.full_body_url, imageSrcs),
+    profile: blocksToDrafts(profile.profile_blocks, imageSrcs),
+    settings: blocksToDrafts(profile.settings_blocks, imageSrcs),
   };
 }
 
@@ -86,7 +96,6 @@ export function createEmptyCharacterForm(): CharacterFormValues {
     thumbnail: EMPTY_IMAGE,
     fullBody: EMPTY_IMAGE,
     background: EMPTY_IMAGE,
-    growthProfiles: [],
   };
 }
 
@@ -124,14 +133,6 @@ export function characterToFormValues(character: Character): CharacterFormValues
     thumbnail: { path: character.thumbnail_url, src: character.thumbnail_src, file: null },
     fullBody: { path: character.full_body_url, src: character.full_body_src, file: null },
     background: { path: character.background_url, src: character.background_src, file: null },
-    growthProfiles: character.growth_profiles.map((profile) => ({
-      key: crypto.randomUUID(),
-      age: String(profile.age),
-      thumbnail: slotFromPath(profile.thumbnail_url, character.image_srcs),
-      fullBody: slotFromPath(profile.full_body_url, character.image_srcs),
-      profile: blocksToDrafts(profile.profile_blocks, character.image_srcs),
-      settings: blocksToDrafts(profile.settings_blocks, character.image_srcs),
-    })),
   };
 }
 
@@ -159,22 +160,23 @@ export function validateCharacterForm(values: CharacterFormValues): string | nul
     ...[...values.personality, ...values.features, ...values.details].flatMap((draft) =>
       draft.kind === 'image' ? [draft.image] : [],
     ),
-    ...values.growthProfiles.flatMap((row) => [
-      row.thumbnail,
-      row.fullBody,
-      ...[...row.profile, ...row.settings].flatMap((draft) => (draft.kind === 'image' ? [draft.image] : [])),
-    ]),
   ];
-  const imageError = imageSlots.map((slot) => validateImageFile(slot.file)).find((message) => message !== null);
-  if (imageError) return imageError;
+  return imageSlots.map((slot) => validateImageFile(slot.file)).find((message) => message !== null) ?? null;
+}
 
-  const ages = values.growthProfiles.map((row) => Number(row.age));
-  if (ages.some((age) => !Number.isInteger(age) || age < 1 || age > MAX_AGE)) {
-    return `성장 프로필의 나이는 1부터 ${MAX_AGE}까지의 숫자로 입력해 주세요.`;
+export function validateGrowthForm(row: GrowthFormRow, takenAges: number[]): string | null {
+  const age = Number(row.age);
+  if (!Number.isInteger(age) || age < 1 || age > MAX_AGE) {
+    return `나이는 1부터 ${MAX_AGE}까지의 숫자로 입력해 주세요.`;
   }
-  if (new Set(ages).size !== ages.length) return '성장 프로필의 나이가 중복되었습니다.';
+  if (takenAges.includes(age)) return '이미 등록된 나이입니다.';
 
-  return null;
+  const imageSlots = [
+    row.thumbnail,
+    row.fullBody,
+    ...[...row.profile, ...row.settings].flatMap((draft) => (draft.kind === 'image' ? [draft.image] : [])),
+  ];
+  return imageSlots.map((slot) => validateImageFile(slot.file)).find((message) => message !== null) ?? null;
 }
 
 function validateImageFile(file: File | null): string | null {
@@ -184,7 +186,7 @@ function validateImageFile(file: File | null): string | null {
   return null;
 }
 
-export type CharacterInput = Omit<CharacterRecord, 'id' | 'ended_at' | 'dex_number'>;
+export type CharacterInput = Omit<CharacterRecord, 'id' | 'ended_at' | 'dex_number' | 'growth_profiles'>;
 
 export interface ResolvedGrowth {
   thumbnail_url: string | null;
@@ -198,23 +200,19 @@ export interface ResolvedImages {
   full_body_url: string | null;
   background_url: string | null;
   blocks: Record<DescriptionSection, ContentBlock[]>;
-  growth: ResolvedGrowth[];
+}
+
+export function buildGrowthProfile(row: GrowthFormRow, resolved: ResolvedGrowth): GrowthProfile {
+  return {
+    age: Number(row.age),
+    thumbnail_url: resolved.thumbnail_url,
+    full_body_url: resolved.full_body_url,
+    profile_blocks: dropEmptyText(resolved.profile_blocks),
+    settings_blocks: dropEmptyText(resolved.settings_blocks),
+  };
 }
 
 export function buildCharacterInput(values: CharacterFormValues, images: ResolvedImages): CharacterInput {
-  const growthProfiles: GrowthProfile[] = values.growthProfiles
-    .map((row, index) => {
-      const resolved = images.growth[index];
-      return {
-        age: Number(row.age),
-        thumbnail_url: resolved.thumbnail_url,
-        full_body_url: resolved.full_body_url,
-        profile_blocks: dropEmptyText(resolved.profile_blocks),
-        settings_blocks: dropEmptyText(resolved.settings_blocks),
-      };
-    })
-    .sort((a, b) => a.age - b.age);
-
   const personality = dropEmptyText(images.blocks.personality);
   const features = dropEmptyText(images.blocks.features);
   const details = dropEmptyText(images.blocks.details);
@@ -242,7 +240,6 @@ export function buildCharacterInput(values: CharacterFormValues, images: Resolve
     thumbnail_url: images.thumbnail_url,
     full_body_url: images.full_body_url,
     background_url: images.background_url,
-    growth_profiles: growthProfiles,
   };
 }
 
