@@ -121,7 +121,7 @@ export function CharacterForm({ initial, existing, onSaved }: Props) {
         <ContentBlocksField label="특징" blocks={values.features} onChange={(blocks) => set('features', blocks)} />
       </FormSection>
 
-      <FormSection title="성장 프로필">
+      <FormSection title="성장">
         <GrowthProfilesField rows={values.growthProfiles} onChange={(rows) => set('growthProfiles', rows)} />
       </FormSection>
 
