@@ -75,12 +75,16 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
                           type="button"
                           key={profile.age}
                           onClick={() => onOpenGrowth(profile.age)}
+                          disabled={isActive}
                           aria-current={isActive ? 'page' : undefined}
-                          className={`min-w-[90px] shrink-0 overflow-hidden rounded-lg border bg-white text-left transition hover:border-yellow-400 ${
-                            isActive ? 'border-yellow-400 ring-2 ring-inset ring-yellow-400' : 'border-zinc-200'
+                          className={`min-w-[90px] shrink-0 overflow-hidden rounded-lg border bg-white text-left transition ${
+                            isActive ? 'cursor-default border-transparent' : 'border-zinc-200 hover:border-yellow-400'
                           }`}
                         >
-                          <CharacterImage src={thumbnailSrc} name={`${profile.age}세 성장 프로필`} className="min-h-[90px] min-w-[90px] shrink-0 object-cover" />
+                          <div className="relative">
+                            <CharacterImage src={thumbnailSrc} name={`${profile.age}세 성장 프로필`} className="min-h-[90px] min-w-[90px] shrink-0 object-cover" />
+                            {isActive && <div aria-hidden="true" className="absolute inset-0 rounded-t-[7px] bg-black/30" />}
+                          </div>
                           <span className="block py-1 text-center text-xs font-semibold text-zinc-600">{profile.age}세</span>
                         </button>
                       );
