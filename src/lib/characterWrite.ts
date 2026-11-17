@@ -2,12 +2,15 @@ import { supabase } from '@/lib/supabase';
 import { getCharacterImagePaths, type Character, type ContentBlock, type GrowthProfile } from '@/lib/data';
 import { removeCharacterImages, uploadCharacterImage } from '@/lib/characterImages';
 import {
+  buildCharacterInput,
   buildGrowthProfile,
   type BlockDraft,
-  type DescriptionSection,
-  type GrowthFormValues,
+  type CharacterFormValues,
+  type CharacterInput,
+  type GrowthFormRow,
   type ImageSlot,
   type ResolvedGrowth,
+  type ResolvedImages,
 } from '@/lib/characterForm';
 
 const PERMISSION_ERROR_PATTERNS = ['row-level security', 'affected no rows'];
@@ -20,21 +23,58 @@ export function describeSaveError(err: unknown): string {
   return '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.';
 }
 
-export async function saveGrowthProfile(character: Character, originalAge: number | null, values: GrowthFormValues): Promise<void> {
+export async function saveCharacter(existing: Character | null, values: CharacterFormValues): Promise<void> {
+  const uploaded: string[] = [];
+
+  try {
+    const thumbnailPath = await resolveImage(values.thumbnail, uploaded);
+    const fullBodyPath = await resolveImage(values.fullBody, uploaded);
+    const backgroundPath = await resolveImage(values.background, uploaded);
+    const blocks = {
+      personality: await resolveBlocks(values.personality, uploaded),
+      features: await resolveBlocks(values.features, uploaded),
+      details: await resolveBlocks(values.details, uploaded),
+    };
+    const images: ResolvedImages = {
+      thumbnail_url: thumbnailPath,
+      full_body_url: fullBodyPath,
+      background_url: backgroundPath,
+      blocks,
+    };
+    const input = buildCharacterInput(values, images);
+
+    if (existing) {
+      await updateCharacterRow(existing.id, input);
+    } else {
+      await insertCharacterRow(input);
+    }
+
+    const keptPaths = getCharacterImagePaths({ ...input, growth_profiles: existing?.growth_profiles ?? [] });
+    const replacedPaths = (existing ? getCharacterImagePaths(existing) : []).filter(
+      (path) => !keptPaths.includes(path),
+    );
+    await cleanupImages(replacedPaths);
+  } catch (err) {
+    await cleanupImages(uploaded);
+    throw err;
+  }
+}
+
+export async function saveGrowthProfile(
+  character: Character,
+  originalAge: number | null,
+  row: GrowthFormRow,
+): Promise<void> {
   const uploaded: string[] = [];
 
   try {
     const resolved: ResolvedGrowth = {
-      thumbnail_url: await resolveImage(values.thumbnail, uploaded),
-      full_body_url: await resolveImage(values.fullBody, uploaded),
-      background_url: await resolveImage(values.background, uploaded),
-      blocks: {
-        personality: await resolveBlocks(values.personality, uploaded),
-        features: await resolveBlocks(values.features, uploaded),
-        details: await resolveBlocks(values.details, uploaded),
-      },
+      thumbnail_url: await resolveImage(row.thumbnail, uploaded),
+      full_body_url: await resolveImage(row.fullBody, uploaded),
+      profile_blocks: await resolveBlocks(row.profile, uploaded),
+      settings_blocks: await resolveBlocks(row.settings, uploaded),
     };
-    const profile = buildGrowthProfile(values, resolved);
+    const profile = buildGrowthProfile(row, resolved);
 
     const current = await fetchGrowthProfiles(character.id);
     const next = [...current.filter((item) => item.age !== originalAge), profile].sort((a, b) => a.age - b.age);
@@ -92,6 +132,25 @@ async function resolveBlocks(drafts: BlockDraft[], uploaded: string[]): Promise<
     if (path) blocks.push({ kind: 'image', path });
   }
   return blocks;
+}
+
+async function insertCharacterRow(input: CharacterInput): Promise<void> {
+  const { data, error } = await supabase.from('characters').insert(input).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Character insert returned no row');
+}
+
+async function updateCharacterRow(id: number, input: CharacterInput): Promise<void> {
+  const { data, error } = await supabase
+    .from('characters')
+    .update(input)
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Character update affected no rows');
 }
 
 async function fetchGrowthProfiles(id: number): Promise<GrowthProfile[]> {

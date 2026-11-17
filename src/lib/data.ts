@@ -1,30 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import { createImageUrls } from '@/lib/characterImages';
 
-export type ContentBlock = { kind: 'text'; text: string } | { kind: 'image'; path: string };
-
 export interface GrowthProfile {
   age: number;
-  name: string;
-  english_name: string;
-  catchphrase: string;
-  gender: string;
-  age_label: string;
-  species: string;
-  height: string;
-  body_type: string;
-  job: string;
-  keywords: string[];
-  community: string;
-  started_at: string;
-  personality: string;
-  features: string;
-  personality_blocks: ContentBlock[];
-  features_blocks: ContentBlock[];
   thumbnail_url: string | null;
   full_body_url: string | null;
-  background_url: string | null;
+  profile_blocks: ContentBlock[];
+  settings_blocks: ContentBlock[];
 }
+
+export type ContentBlock = { kind: 'text'; text: string } | { kind: 'image'; path: string };
 
 export interface CharacterRecord {
   id: number;
@@ -78,14 +63,12 @@ export function getCharacterImagePaths(record: ImagePathSource): string[] {
     record.personality_blocks,
     record.features_blocks,
     record.details_blocks,
-    ...record.growth_profiles.flatMap((profile) => [profile.personality_blocks, profile.features_blocks]),
+    ...record.growth_profiles.flatMap((profile) => [profile.profile_blocks, profile.settings_blocks]),
   ]
     .flat()
     .flatMap((block) => (block.kind === 'image' ? [block.path] : []));
   const growthImagePaths = record.growth_profiles.flatMap((profile) =>
-    [profile.thumbnail_url, profile.full_body_url, profile.background_url].filter(
-      (path): path is string => path !== null,
-    ),
+    [profile.thumbnail_url, profile.full_body_url].filter((path): path is string => path !== null),
   );
   return [record.thumbnail_url, record.full_body_url, record.background_url, ...growthImagePaths, ...blockPaths].filter(
     (path): path is string => path !== null,
