@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Calendar } from 'lucide-react';
-import type { Character } from '@/lib/data';
+import type { Character, ContentBlock } from '@/lib/data';
 import type { ProfileRow } from '@/lib/characterProfile';
 import { formatActivityPeriod } from '@/lib/format';
 import { CharacterImage } from '@/components/common/CharacterImage';
@@ -9,18 +9,50 @@ import { SectionTitle } from '@/components/detail/DetailSection';
 
 interface Props {
   character: Character;
-  profileRows: ProfileRow[];
+  view: CharacterGrowthView;
   fullBodySrc: string;
   activeAge?: number;
   onOpenGrowth: (age: number) => void;
 }
 
-export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, onOpenGrowth }: Props) {
+export interface CharacterGrowthView {
+  name: string;
+  englishName: string;
+  catchphrase: string;
+  gender: string;
+  ageLabel: string;
+  species: string;
+  height: string;
+  bodyType: string;
+  job: string;
+  keywords: string[];
+  community: string;
+  startedAt: string;
+  personalityBlocks: ContentBlock[];
+  featuresBlocks: ContentBlock[];
+  detailsBlocks: ContentBlock[];
+  thumbnailSrc: string | null;
+  fullBodySrc: string | null;
+  backgroundSrc: string | null;
+}
+
+
+
+export function CharacterHero({ character, view, fullBodySrc, activeAge, onOpenGrowth }: Props) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const name = character.name || '한글이름';
-  const catchphrase = character.catchphrase || '오늘도 평온한 하루가 되기를.';
+  const name = view.name || '한글이름';
+  const catchphrase = view.catchphrase || '오늘도 평온한 하루가 되기를.';
   const growthProfiles = character.growth_profiles;
   const hasGrowthProfiles = growthProfiles.length > 0;
+
+  const profileRows: ProfileRow[] = [
+    { label: '성별', value: view.gender || '여성' },
+    { label: '나이', value: view.ageLabel || '20세' },
+    { label: '종족', value: view.species || '인간' },
+    { label: '신장', value: view.height || '170cm' },
+    { label: '체형', value: view.bodyType || '보통' },
+    { label: '직업', value: view.job || '작가' },
+  ];
 
   return (
     <>
@@ -40,7 +72,7 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
         <aside className="relative z-[4] flex min-w-[320px] shrink-0 flex-col pt-[118px]">
           <section className="min-h-[86px] shrink-0">
             <h1 className="text-4xl font-bold leading-[1.2] tracking-tight text-zinc-900">{name}</h1>
-            <p className="mt-2 text-base font-semibold text-zinc-400">{character.english_name || 'English name'}</p>
+            <p className="mt-2 text-base font-semibold text-zinc-400">{view.englishName || 'English name'}</p>
           </section>
 
           <div className={`mt-[40px] flex flex-1 flex-col gap-10 ${hasGrowthProfiles ? 'justify-between' : ''}`}>
@@ -55,10 +87,10 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
 
             <section className="flex flex-col gap-3">
               <SectionTitle>활동</SectionTitle>
-              <p className="text-base font-bold text-zinc-900">{character.community || '캐릭터 커뮤니티'}</p>
+              <p className="text-base font-bold text-zinc-900">{view.community || '캐릭터 커뮤니티'}</p>
               <p className="flex items-center gap-1.5 text-xs text-zinc-500">
                 <Calendar className="h-4 w-4 text-zinc-400" aria-hidden="true" />
-                {formatActivityPeriod(character.started_at || '2022-11-08')}
+                {formatActivityPeriod(view.startedAt || '2022-11-08')}
               </p>
             </section>
 
@@ -99,7 +131,7 @@ export function CharacterHero({ character, profileRows, fullBodySrc, activeAge, 
 
         <div className="relative mt-[40px] min-h-[890px] min-w-0 flex-1 self-start">
           <div className="absolute inset-x-0 top-0 z-[1] h-[890px] overflow-hidden rounded-lg bg-[#f8f8f8]">
-            <CharacterImage src={character.background_src} name={name} className="h-full w-full object-cover" />
+            <CharacterImage src={view.backgroundSrc} name={name} className="h-full w-full object-cover" />
           </div>
           <button
             type="button"
